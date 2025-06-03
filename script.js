@@ -1,31 +1,51 @@
-// 定义底图集合
-const baseLayers = {
-  "OpenStreetMap": new ol.layer.Tile({
-    source: new ol.source.OSM(),
-    visible: true  // 默认显示OSM
-  }),
-  "ArcGIS影像": new ol.layer.Tile({
+// 定义图层
+const arcgis = new ol.layer.Tile({
     source: new ol.source.XYZ({
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      attributions: '© <a href="https://www.arcgis.com/">ArcGIS</a>'
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     }),
     visible: false
-  })
-};
-
-
-const map = new ol.Map({
-  target: "map",
-  layers: [
-    baseLayers["OpenStreetMap"], // 初始加入一层
-    baseLayers["ArcGIS影像"],    // 先加进去，visible: false，不显示
-  ],
-  view: new ol.View({
-    center: ol.proj.fromLonLat([100.2, 36.9]),
-    zoom: 9.5,
-  }),
 });
 
+const tiandituVec = new ol.layer.Tile({
+    source: new ol.source.XYZ({
+        url: 'https://t5.tianditu.gov.cn/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=e39d34af51e31a369a02569f5ed1f53c',
+        crossOrigin: 'anonymous'
+    }),
+    visible: true
+});
+
+const tiandituCia = new ol.layer.Tile({
+    source: new ol.source.XYZ({
+        url: 'https://t5.tianditu.gov.cn/DataServer?T=cva_w&x={x}&y={y}&l={z}&tk=e39d34af51e31a369a02569f5ed1f53c',
+        crossOrigin: 'anonymous'
+    }),
+    visible: true
+});
+
+// 图层集合
+const baseLayers = {
+    "影像地图": [arcgis],
+    "街道地图": [tiandituVec, tiandituCia]
+};
+
+// 创建地图
+const map = new ol.Map({
+    target: "map",
+    layers: [arcgis, tiandituVec, tiandituCia],
+    view: new ol.View({
+     center: ol.proj.fromLonLat([100.2, 36.9]),
+     zoom: 9.5,
+    })
+});
+
+// 底图切换逻辑
+document.getElementById('baseLayerSelector').addEventListener('change', function(e) {
+    // 先隐藏所有图层
+    [arcgis, tiandituVec, tiandituCia].forEach(layer => layer.setVisible(false));
+    // 再显示选中的图层
+    const selected = baseLayers[e.target.value];
+    selected.forEach(layer => layer.setVisible(true));
+});
 
 document.getElementById('baseLayerSelector').addEventListener('change', function(e) {
   // 先隐藏所有底图
@@ -135,14 +155,17 @@ fetch('QHLake.csv')
       xAxis: { type: 'category', data: years },
       yAxis: { type: 'value', 
                name: 'Area(km²)',
-               splitNumber: 4, // 控制刻度行数，越小越稀疏
+               splitNumber: 1, // 控制刻度行数，越小越稀疏
                min: 'dataMin',
                max: 'dataMax' },
       series: [{
         type: 'line',
         name: 'Area',
         data: areas,
-        smooth: true
+        smooth: true,
+        itemStyle: {
+          opacity: 0 // 如果你只是想让点“看不见”而不是去掉
+        }
       }],
       grid: {
         top: 40,
@@ -157,7 +180,7 @@ fetch('QHLake.csv')
       xAxis: { type: 'category', data: years },
       yAxis: { type: 'value', 
                name: 'Trend(km²)',
-               splitNumber: 4, // 控制刻度行数，越小越稀疏
+               splitNumber: 1, // 控制刻度行数，越小越稀疏
                min: 'dataMin',
                max: 'dataMax' },
       series: [{
@@ -181,7 +204,7 @@ fetch('QHLake.csv')
       xAxis: { type: 'category', data: years },
       yAxis: { type: 'value', 
                name: 'Seanal(km²)',
-               splitNumber: 4, // 控制刻度行数，越小越稀疏
+               splitNumber: 1, // 控制刻度行数，越小越稀疏
                min: 'dataMin',
                max: 'dataMax' },
       series: [{
@@ -205,7 +228,7 @@ fetch('QHLake.csv')
       xAxis: { type: 'category', data: years },
       yAxis: { type: 'value', 
                name: 'Residual(km²)',
-               splitNumber: 4, // 控制刻度行数，越小越稀疏
+               splitNumber: 1, // 控制刻度行数，越小越稀疏
                min: 'dataMin',
                max: 'dataMax' },
       series: [{
@@ -223,6 +246,9 @@ fetch('QHLake.csv')
     });
   });
 
+
+
+// 打字机效果
 const text = `青海湖，如一面湛蓝的镜子，镶嵌在高原的胸膛，千百年来静默不语，却在岁月中悄然变幻。
 它的湖面曾在岁月中起伏跌宕，宛如大地的呼吸，忽盈忽缩。
 自2012年起，那湖水缓缓上升，不是因外力所致，
